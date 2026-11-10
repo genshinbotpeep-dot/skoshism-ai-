@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKOSHISM — 로보 & 니노의 소소한 일상</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;800&family=Gaegu:wght@400;700&display=swap');
+
+    :root {
+      --bg-color: #f5efe6;
+      --paper-color: #fffdf9;
+      --ink-color: #433d37;
+      --line-color: #e5d8c5;
+      --accent-robo: #566573;
+      --accent-nino: #d97757;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--ink-color);
+      font-family: 'Noto Sans KR', sans-serif;
+      user-select: none;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #efe6d8;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d3c4b0;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #b5a48f;
+    }
+
+    /* Character speech bubble */
+    #speechBubble {
+      position:absolute; z-index:20; top:12px; left:6%; width:88%;
+      min-height:72px; padding:12px 16px; border:2px solid #d9c9b5;
+      border-radius:20px; background:rgba(255,255,252,.97);
+      box-shadow:0 5px 16px rgba(67,61,55,.13); color:#433d37;
+      display:none; pointer-events:none;
+    }
+    #speechBubble::after { content:""; position:absolute; bottom:-11px; left:var(--tail-left,28%);
+      width:18px; height:18px; background:#fffefb; border-right:2px solid #d9c9b5;
+      border-bottom:2px solid #d9c9b5; transform:rotate(45deg); }
+    #speechBubble[data-speaker="robo"] { border-color:#9eaaa2; }
+    #speechBubble[data-speaker="nino"] { border-color:#e6aa91; }
+    #speechBubbleName { display:block; font-size:11px; font-weight:800; margin-bottom:4px; color:#66756b; }
+    #speechBubble[data-speaker="nino"] #speechBubbleName { color:#d97757; }
+    #speechBubbleText { font-size:13px; line-height:1.55; font-weight:600; white-space:pre-wrap; }
+    #vnDialogueBox > .min-h-\[72px\] { display:none; }
+    @media (max-width:640px) { #speechBubble {left:3%;width:94%;padding:10px 12px;} #speechBubbleText{font-size:12px;} }
+
+    #speechBubble { max-width: 620px; }
+    #aiConnectionStatus.error { color: #b45309; }
+    #aiConnectionStatus.ok { color: #36734b; }
+
+    /* House Map Pixel Grid & Rooms */
+    .house-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 155px 175px 150px;
+      gap: 6px;
+      background: #665e56;
+      padding: 6px;
+      border: 4px solid #474039;
+      border-radius: 12px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.15);
+    }
+
+    .room-tile {
+      position: relative;
+      border: 2px solid #dabfa6;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .room-label {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 253, 248, 0.92);
+      padding: 2px 7px;
+      border-radius: 6px;
+      z-index: 5;
+      color: #4d453c;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Room Themes */
+    .bg-robo {
+      background-color: #d7d7d4;
+      background-image: linear-gradient(#c5c5c1 1px, transparent 1px), linear-gradient(90deg, #c5c5c1 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .bg-nino {
+      background-color: #f3dfd2;
+      background-image: linear-gradient(#e6ccbd 1px, transparent 1px), linear-gradient(90deg, #e6ccbd 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .bg-studio {
+      grid-column: 1 / 3;
+      background-color: #dcd0bf;
+      background-image: linear-gradient(#cdbea9 1px, transparent 1px), linear-gradient(90deg, #cdbea9 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .bg-living {
+      background-color: #e9dec9;
+      background-image: radial-gradient(#d6c6ab 1.5px, transparent 1.5px);
+      background-size: 16px 16px;
+    }
+    .bg-kitchen {
+      background-color: #e3e3d4;
+      background-image: linear-gradient(#d0d0bc 1px, transparent 1px), linear-gradient(90deg, #d0d0bc 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+    .bg-bath {
+      background-color: #dceaea;
+      background-image: linear-gradient(#c9dedc 1px, transparent 1px), linear-gradient(90deg, #c9dedc 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+
+    /* Furniture styling */
+    .furniture {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #9e907f;
+      border-radius: 8px;
+      font-size: 18px;
+      background: rgba(255,255,255,0.45);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .furniture small {
+      font-size: 8px;
+      font-weight: 700;
+      color: #524b42;
+      margin-top: 1px;
+    }
+
+    /* Soundproof Booths */
+    .sound-booth {
+      position: absolute;
+      top: 20%;
+      height: 60%;
+      width: 36%;
+      background: #68615a;
+      border: 4px solid #443e39;
+      border-radius: 8px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 2px #988d82;
+    }
+
+    /* Characters on Map */
+    .map-avatar {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      transition: left 0.8s ease-in-out, top 0.8s ease-in-out;
+      z-index: 20;
+    }
+    .map-avatar.robo-avatar {
+      background-color: #2e7d32;
+      color: white;
+    }
+    .map-avatar.nino-avatar {
+      background-color: #f57c00;
+      color: white;
+    }
+    .map-avatar .tag {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fffdf9;
+      border: 1px solid #cebfad;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9px;
+      white-space: nowrap;
+      color: #333;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Visual Novel Box Styling */
+    .vn-card {
+      background: var(--paper-color);
+      border: 1px solid var(--line-color);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Typewriter Indicator */
+    .typing-cursor::after {
+      content: '❚';
+      display: inline-block;
+      animation: blink 0.7s infinite;
+      margin-left: 2px;
+      color: #d97757;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Weather Effects Overlay */
+    .weather-overlay {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      transition: background 1s ease;
+    }
+    .weather-rain {
+      background: linear-gradient(to bottom, rgba(110, 130, 150, 0.25), rgba(70, 90, 110, 0.4));
+    }
+    .weather-snow {
+      background: rgba(225, 235, 250, 0.25);
+    }
+    .weather-night {
+      background: rgba(15, 23, 42, 0.48);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-[#fffdf9] border-b border-[#e5d8c5] px-4 py-3 sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">🏠</span>
+        <div>
+          <h1 id="appTitle" class="font-bold text-lg text-[#433d37] tracking-tight">SKOSHISM — 로보와 니노의 집</h1>
+          <p class="text-xs text-[#8a7e70]">소꿉친구 둘과 반려견 미역이, 반려묘 도톨의 평범하고 따뜻한 일상</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="soundBtn" class="px-3 py-1.5 text-xs bg-[#f3eae0] hover:bg-[#e8dbc9] border border-[#d4c4b0] rounded-lg transition flex items-center gap-1">
+          <i class="fa-solid fa-volume-high text-amber-700"></i> <span id="soundStatus">사운드 ON</span>
+        </button>
+        <button id="settingsBtn" class="px-3 py-1.5 text-xs bg-[#f3eae0] hover:bg-[#e8dbc9] border border-[#d4c4b0] rounded-lg transition">
+          <i class="fa-solid fa-gear"></i> 설정
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-6xl w-full mx-auto p-3 md:p-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+    
+    <!-- LEFT / TOP COLUMN: Interactive House Map & Status (5 Cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- Time & Status Card -->
+      <div class="vn-card rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span id="timeClock" class="text-2xl font-black text-[#433d37] tracking-wider">09:30</span>
+            <span id="timePeriodBadge" class="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full">오전</span>
+          </div>
+          <p id="dateStatus" class="text-xs text-[#8a7e70] mt-0.5">DAY 1 · ☀️ 맑은 날씨 · 평온한 아침</p>
+        </div>
+        <div class="flex gap-1">
+          <button id="btnWeather" class="p-2 text-xs bg-[#f3eae0] hover:bg-[#e7d8bf] rounded-lg border border-[#d9c9a9]" title="날씨 변경">
+            <i class="fa-solid fa-cloud-sun"></i>
+          </button>
+          <button id="btnPause" class="p-2 text-xs bg-[#f3eae0] hover:bg-[#e7d8bf] rounded-lg border border-[#d9c9a9]" title="시간 정지/재생">
+            <i class="fa-solid fa-pause" id="pauseIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Interactive 2D House Map -->
+      <div class="vn-card rounded-2xl p-3 relative overflow-hidden">
+        <div class="flex justify-between items-center mb-2 px-1">
+          <h2 class="text-xs font-bold text-[#6b6053] flex items-center gap-1.5">
+            <i class="fa-solid fa-map-location-dot"></i> 하우스 미니맵 (실시간 위치)
+          </h2>
+          <span class="text-[10px] text-[#988a78]">방을 클릭하면 해당 장소로 이동</span>
+        </div>
+
+        <div class="relative rounded-xl overflow-hidden">
+          <div id="weatherOverlay" class="weather-overlay"></div>
+
+          <!-- House Grid Structure -->
+          <div class="house-grid">
+            
+            <!-- 1. Robo's Room -->
+            <div id="room-roboRoom" class="room-tile bg-robo cursor-pointer hover:brightness-95 transition" onclick="quickMove('roboRoom')">
+              <div class="room-label">로보의 방</div>
+              <div class="furniture w-[40%] h-[38%] left-[8%] top-[25%] bg-[#bebeb8]">🛏️<small>침대</small></div>
+              <div class="furniture w-[36%] h-[25%] right-[8%] top-[25%] bg-[#a0a09a]">💻<small>작업책상</small></div>
+              <div class="furniture w-[36%] h-[15%] right-[8%] bottom-[12%] bg-[#b0b0aa]">📚<small>수납장</small></div>
+            </div>
+
+            <!-- 2. Nino's Room -->
+            <div id="room-ninoRoom" class="room-tile bg-nino cursor-pointer hover:brightness-95 transition" onclick="quickMove('ninoRoom')">
+              <div class="room-label">니노의 방</div>
+              <div class="furniture w-[40%] h-[38%] left-[8%] top-[25%] bg-[#e2ad9e] border-[#c08678]">🛏️<small>침대</small></div>
+              <div class="furniture w-[36%] h-[25%] right-[8%] top-[25%] bg-[#cfa182]">🎮<small>취미책상</small></div>
+              <div class="furniture w-[36%] h-[15%] right-[8%] bottom-[12%] bg-[#d4b197]">🧸<small>피규어장</small></div>
+            </div>
+
+            <!-- 3. Studio / Soundproof Booths -->
+            <div id="room-studio" class="room-tile bg-studio cursor-pointer hover:brightness-95 transition" onclick="quickMove('studio')">
+              <div class="room-label">🎙️ 방음 부스 작업실</div>
+              <!-- Booth 1: Robo -->
+              <div class="sound-booth left-[8%]">
+                <span class="text-sm">🎤</span>
+                <span class="text-[9px] font-bold mt-1 text-slate-200">로보 부스</span>
+              </div>
+              <!-- Booth 2: Nino -->
+              <div class="sound-booth right-[8%] border-[#524841] bg-[#70645a]">
+                <span class="text-sm">🎧</span>
+                <span class="text-[9px] font-bold mt-1 text-amber-200">니노 부스</span>
+              </div>
+            </div>
+
+            <!-- 4. Living Room -->
+            <div id="room-living" class="room-tile bg-living cursor-pointer hover:brightness-95 transition" onclick="quickMove('living')">
+              <div class="room-label">거실</div>
+              <div class="furniture w-[45%] h-[30%] left-[8%] bottom-[15%] bg-[#c7ae97] border-[#aa9079]">🛋️<small>소파</small></div>
+              <div class="furniture w-[22%] h-[22%] right-[12%] bottom-[18%] rounded-full bg-[#d2c0a6]">☕<small>탁자</small></div>
+              <div class="furniture w-[16%] h-[22%] right-[10%] top-[15%] rounded-full bg-[#adbe95]">🪴</div>
+            </div>
+
+            <!-- 5. Kitchen -->
+            <div id="room-kitchen" class="room-tile bg-kitchen cursor-pointer hover:brightness-95 transition" onclick="quickMove('kitchen')">
+              <div class="room-label">주방</div>
+              <div class="furniture w-[75%] h-[24%] left-[10%] top-[22%] bg-[#c2b39e]">🍳<small>조리대</small></div>
+              <div class="furniture w-[24%] h-[35%] right-[10%] bottom-[10%] bg-[#b3c7c6]">🧊<small>냉장고</small></div>
+            </div>
+
+            <!-- 6. Bath / Utility -->
+            <div id="room-bath" class="room-tile bg-bath cursor-pointer hover:brightness-95 transition" onclick="quickMove('bath')">
+              <div class="room-label">욕실·세탁실</div>
+              <div class="furniture w-[35%] h-[40%] left-[10%] top-[25%] bg-[#ffffff]">🫧<small>세탁기</small></div>
+              <div class="furniture w-[38%] h-[40%] right-[10%] top-[25%] bg-[#a8dad8]">🛁<small>욕조</small></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Character Status Badges -->
+        <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+          <div class="bg-[#f3eae0] border border-[#e5d8c5] rounded-xl p-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-full bg-[#2e7d32] text-white flex items-center justify-center font-bold text-xs shadow-xs">🌲</span>
+              <div>
+                <p class="font-bold text-[#433d37] text-[11px]" id="badgeRoboName">로보</p>
+                <p class="text-[10px] text-[#786c5e]" id="badgeRoboState">무심하게 니노 바라봄</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[#f3eae0] border border-[#e5d8c5] rounded-xl p-2 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-7 h-7 rounded-full bg-[#f57c00] text-white flex items-center justify-center font-bold text-xs shadow-xs">🌻</span>
+              <div>
+                <p class="font-bold text-[#433d37] text-[11px]" id="badgeNinoName">니노</p>
+                <p class="text-[10px] text-[#786c5e]" id="badgeNinoState">얼굴이 약간 달아오름</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Menu -->
+      <div class="vn-card rounded-2xl p-3">
+        <h3 class="text-xs font-bold text-[#6b6053] mb-2 flex items-center gap-1.5">
+          <i class="fa-solid fa-heart text-rose-500"></i> 소소한 일상 & 설레는 스킨십 선택
+        </h3>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="triggerScenario('romantic_sofa')" class="p-2.5 bg-[#fff7f5] hover:bg-[#fdebe7] border border-[#f5cfc6] rounded-xl text-left font-medium text-[#7a3b2e] transition flex items-center gap-2">
+            <span>🛋️</span> 새벽 소파에서의 은밀한 밀착
+          </button>
+          <button onclick="triggerScenario('booth_touch')" class="p-2.5 bg-[#fff7f5] hover:bg-[#fdebe7] border border-[#f5cfc6] rounded-xl text-left font-medium text-[#7a3b2e] transition flex items-center gap-2">
+            <span>🎙️</span> 좁은 방음부스 안 둘만의 체온
+          </button>
+          <button onclick="triggerScenario('hair_touch')" class="p-2.5 bg-[#fff7f5] hover:bg-[#fdebe7] border border-[#f5cfc6] rounded-xl text-left font-medium text-[#7a3b2e] transition flex items-center gap-2">
+            <span>✨</span> 무심하게 머리 쓰다듬기
+          </button>
+          <button onclick="triggerScenario('backhug_cook')" class="p-2.5 bg-[#fff7f5] hover:bg-[#fdebe7] border border-[#f5cfc6] rounded-xl text-left font-medium text-[#7a3b2e] transition flex items-center gap-2">
+            <span>🍳</span> 요리하는 로보 뒤에서 장난치기
+          </button>
+          <button onclick="triggerScenario('chat_living')" class="p-2.5 bg-[#fffdf9] hover:bg-[#f3eae0] border border-[#e0d3bf] rounded-xl text-left font-medium text-[#4f463d] transition flex items-center gap-2">
+            <span>💬</span> 평소처럼 티격태격 대화
+          </button>
+          <button onclick="triggerScenario('pet_play')" class="p-2.5 bg-[#fffdf9] hover:bg-[#f3eae0] border border-[#e0d3bf] rounded-xl text-left font-medium text-[#4f463d] transition flex items-center gap-2">
+            <span>🐕</span> 미역이 & 도톨이와 놀기
+          </button>
+        </div>
+      </div>
+
+      <!-- AI conversation controls -->
+      <div class="vn-card rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-extrabold text-[#5f554a]"><i class="fa-solid fa-wand-magic-sparkles text-rose-500"></i> AI 자유 대화</h3>
+          <span class="text-[10px] text-[#9a8874]">매번 새로 생성</span>
+        </div>
+        <label class="block text-xs font-bold text-[#6b6053]" for="aiSituation">시츄에이션</label>
+        <select id="aiSituation" class="w-full rounded-xl border border-[#d8c9b5] bg-[#fffdf9] p-2.5 text-sm text-[#433d37]">
+          <option value="일상">일상</option>
+          <option value="방송">방송</option>
+          <option value="썸띵">썸띵</option>
+          <option value="19">19</option>
+          <option value="오타쿠">오타쿠</option>
+          <option value="스코시즘">스코시즘</option>
+          <option value="그 외">그 외</option>
+        </select>
+        <div class="grid grid-cols-1 gap-2">
+          <label class="block text-xs font-bold text-[#6b6053]" for="aiModel">사용 모델</label>
+          <input id="aiModel" type="text" value="gpt-4.1-mini" class="w-full rounded-xl border border-[#d8c9b5] bg-white p-2.5 text-sm" />
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="startAIConversation()" class="rounded-xl bg-[#d97757] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c76545]"><i class="fa-solid fa-comments"></i> AI 대화 시작</button>
+          <button onclick="stopAIConversation()" class="rounded-xl border border-[#d8c9b5] bg-[#f7f1e8] px-4 py-2.5 text-sm font-bold text-[#675b4d]">대화 정지</button>
+        </div>
+        <p id="aiConnectionStatus" class="text-[11px] leading-relaxed text-[#8b7967]">사이트 서버에 OPENAI_API_KEY 환경변수를 설정한 뒤 AI 대화 시작을 눌러줘.</p>
+        <p class="text-[10px] leading-relaxed text-[#a08f7d]">API 키는 브라우저에 입력하지 않아. Netlify 환경변수에 보관하는 안전한 연결 방식이야. ‘19’는 성인 분위기·은근한 긴장감 위주이며 노골적인 성적 묘사는 생성하지 않도록 설정했어.</p>
+      </div>
+
+    </section>
+
+    <!-- RIGHT / BOTTOM COLUMN: Visual Novel Dialogue & Log System (7 Cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+
+      <!-- Main Visual Novel Interactive Display Container -->
+      <div class="vn-card rounded-2xl p-4 md:p-5 flex-1 flex flex-col justify-between min-h-[460px] relative border-2 border-[#dcd0bd]">
+        
+        <!-- VN Header Bar -->
+        <div class="flex justify-between items-center border-b border-[#e8dccb] pb-3 mb-3">
+          <div class="flex items-center space-x-2">
+            <span id="vnLocationTag" class="px-2.5 py-1 text-xs font-bold bg-[#f3eae0] text-[#675b4d] rounded-lg border border-[#decfa8]">
+              📍 거실
+            </span>
+            <span id="vnChapterTag" class="text-xs text-[#988a78]">은밀하고 따뜻한 둘만의 시간...</span>
+          </div>
+          <button onclick="toggleLogModal()" class="text-xs text-[#7f7160] hover:text-[#433d37] flex items-center gap-1 font-medium">
+            <i class="fa-solid fa-book-open"></i> 대화 기록
+          </button>
+        </div>
+
+        <!-- Stage Area: Character Visual Elements & Expression Badges -->
+        <div id="stageArea" class="flex-1 flex items-center justify-around py-4 my-2 rounded-xl bg-gradient-to-b from-[#fdfbf6] to-[#f4eee3] border border-[#ebdccb] relative overflow-hidden">
+          <div id="speechBubble" aria-live="polite" data-speaker="nino"><span id="speechBubbleName">니노</span><span id="speechBubbleText"></span></div>
+          <!-- Robo Portrait Card -->
+          <div id="portraitRobo" class="flex flex-col items-center transition-all duration-300 transform scale-100 opacity-90">
+            <div class="relative">
+              <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-[#2e7d32] to-[#1b5e20] border-4 border-white shadow-md flex items-center justify-center text-4xl text-white relative">
+                🌲
+                <span id="roboEmotionBadge" class="absolute -bottom-2 -right-2 bg-white text-[#1b5e20] text-xs px-2 py-0.5 rounded-full border border-green-300 font-bold shadow-sm">
+                  차분함
+                </span>
+              </div>
+            </div>
+            <p id="labelRobo" class="font-bold text-sm text-[#1b5e20] mt-2">로보 (Robo)</p>
+            <p class="text-[10px] text-slate-500">과묵함 · 반말 · 세심함</p>
+          </div>
+
+          <!-- Nino Portrait Card -->
+          <div id="portraitNino" class="flex flex-col items-center transition-all duration-300 transform scale-100 opacity-90">
+            <div class="relative">
+              <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-[#f57c00] to-[#e65100] border-4 border-white shadow-md flex items-center justify-center text-4xl text-white relative">
+                🌻
+                <span id="ninoEmotionBadge" class="absolute -bottom-2 -right-2 bg-white text-[#e65100] text-xs px-2 py-0.5 rounded-full border border-orange-200 font-bold shadow-sm">
+                  붉어진 얼굴
+                </span>
+              </div>
+            </div>
+            <p id="labelNino" class="font-bold text-sm text-[#e65100] mt-2">니노 (Nino)</p>
+            <p class="text-[10px] text-orange-400">장난기 · 툴툴댐 · 감정풍부</p>
+          </div>
+
+          <!-- Pet Portrait Display -->
+          <div id="portraitPet" class="hidden flex-col items-center transition-all">
+            <div class="w-20 h-20 rounded-2xl bg-amber-100 border-3 border-white shadow-sm flex items-center justify-center text-3xl">
+              <span id="petEmoji">🐕</span>
+            </div>
+            <p id="petName" class="font-bold text-xs text-amber-800 mt-1.5">미역이</p>
+          </div>
+
+        </div>
+
+        <!-- Dialogue Box -->
+        <div id="vnDialogueBox" onclick="handleDialogueBoxClick(event)" class="bg-[#fffdf9] border-2 border-[#e5d8c5] rounded-xl p-4 shadow-sm relative mt-2 cursor-pointer select-none">
+          <!-- Speaker Label -->
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span id="speakerTag" class="font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs bg-slate-700">
+                로보
+              </span>
+              <span id="speakerActionHint" class="text-xs text-[#8a7e70] italic font-light">
+                (안경을 고쳐 쓰며)
+              </span>
+            </div>
+            <button id="btnAutoPlay" onclick="toggleAutoPlay(event)" class="text-[11px] px-2.5 py-1 bg-[#f3eae0] hover:bg-[#e8dbc9] text-[#675b4d] rounded-md transition border border-[#d3c2aa] flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-forward"></i> <span id="autoPlayText">자동 넘기기 OFF</span>
+            </button>
+          </div>
+
+          <!-- Dialogue Text Line -->
+          <div class="min-h-[72px] flex items-start">
+            <p id="vnText" class="text-sm md:text-base leading-relaxed text-[#3b352e] font-medium typing-cursor">
+              "너... 너무 가까운데."
+            </p>
+          </div>
+
+          <!-- Interaction Choice Buttons Container -->
+          <div id="choiceContainer" class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 pt-3 border-t border-[#e8dccb]">
+            <!-- Dynamic Choice Buttons rendered here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Autonomous Banter Log & Daily Moments Feed -->
+      <div class="vn-card rounded-2xl p-4 flex flex-col min-h-[140px]">
+        <h3 class="text-xs font-bold text-[#6b6053] mb-2 flex items-center justify-between">
+          <span><i class="fa-solid fa-bars-staggered"></i> 은밀한 기류 & 일상 기록</span>
+          <span class="text-[10px] text-[#988a78]">두 사람과 반려동물의 행동</span>
+        </h3>
+        <div id="dailyLogFeed" class="space-y-1.5 text-xs text-[#6b6053] max-h-[110px] overflow-y-auto pr-1">
+          <div class="p-1.5 rounded-lg bg-[#f5efe6] border border-[#e5d8c5]">
+            <span class="font-bold text-slate-700">01:15</span> · 로보가 조용히 니노의 어깨에 담요를 덮어주었습니다.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Script Implementation -->
+  <script>
+    /* ===================================================================
+       1. STATE & CONFIGURATION
+       =================================================================== */
+    let config = {
+      title: "SKOSHISM — 로보와 니노의 집",
+      roboName: "로보",
+      ninoName: "니노",
+      textSpeed: 45,
+      soundOn: true,
+      ...JSON.parse(localStorage.getItem('skoshism_cfg') || '{}')
+    };
+
+    let timeState = {
+      day: 1,
+      mins: 570, // 09:30 AM
+      weather: 'sunny',
+      paused: false
+    };
+
+    let actors = [
+      { id: 'robo', room: 'living', x: 40, y: 50, name: '로보', state: '안경 쓰며 니노 쳐다봄', el: null },
+      { id: 'nino', room: 'living', x: 30, y: 65, name: '니노', state: '소파에 누워 뒹굴거림', el: null },
+      { id: 'dog', room: 'living', x: 65, y: 70, name: '미역이', state: '니노 발밑에서 쿨쿨', el: null },
+      { id: 'cat', room: 'roboRoom', x: 75, y: 35, name: '도톨', state: '로보 의자에 똬리 믊', el: null }
+    ];
+
+    let currentScript = [];
+    let scriptIndex = 0;
+    let isTyping = false;
+    let typingTimer = null;
+    let autoPlay = false;
+    let autoPlayTimer = null;
+    let conversationHistory = [];
+
+    /* ===================================================================
+       2. REVISED DIALOGUE DATABASE
+       =================================================================== */
+    const Scenarios = {
+      // NEW 1: Romantic Late Night Sofa Cuddling & Intimacy
+      romantic_sofa: [
+        {
+          speaker: 'nino',
+          emotion: '붉어진 얼굴',
+          action: '새벽 1시, 졸음 가득한 눈으로 로보의 어깨에 살며시 이마를 댄다',
+          text: "로보... 니노 너무 졸린데, 소파에서 일어나기 싫어... 5분만 이러고 있자."
+        },
+        {
+          speaker: 'robo',
+          emotion: '가슴 뜀',
+          action: '몸이 순간 딱딱하게 굳었다가, 무심한 척 안경을 고쳐 쓴다',
+          text: "……야. 기댈 거면 방에 들어가서 자라. 이러고 있으면 나도 못 움직이잖아."
+        },
+        {
+          speaker: 'nino',
+          emotion: '은밀함',
+          action: '로보의 옷자락을 꼬옥 쥐며 더 깊게 몸을 파묻는다',
+          text: "싫어. 로보 체온 따뜻해서 좋아. 로보 가슴소리 들리는데... 조금 빠른 것 같아."
+        },
+        {
+          speaker: 'robo',
+          emotion: '당황',
+          action: '낮게 한숨을 쉬며 슬쩍 니노의 뺨에 흘러내린 머리카락을 넘겨준다',
+          text: "……쓸데없는 소리 하지 말고. 착각이다. 빨리 눈 감아."
+        },
+        {
+          speaker: 'player',
+          options: [
+            { text: "로보, 니노 머리를 가만히 쓰다듬는다.", next: 'sofa_opt_stroke' },
+            { text: "니노를 가볍게 안아 올려 방으로 데려간다.", next: 'sofa_opt_carry' }
+          ]
+        }
+      ],
+      sofa_opt_stroke: [
+        {
+          speaker: 'robo',
+          emotion: '다정함',
+          action: '말없이 커다란 손으로 니노의 머리를 결 따라 천천히 쓸어내린다',
+          text: "고집은 참... 알았으니까 이대로 잠들지 마라. 체한다."
+        },
+        {
+          speaker: 'nino',
+          emotion: '행복함',
+          action: '손길이 기분 좋은 듯 눈을 지그시 감으며 미소 짓는다',
+          text: "음... 로보 손길 좋아. 니노 전담 침대 해줘..."
+        },
+        {
+          speaker: 'robo',
+          emotion: '피식',
+          action: '니노의 이마에 살짝 꿀밤을 때리는 흉내를 낸다',
+          text: "헛소리 말고. 딱 10분 뒤에 일어나는 거다."
+        }
+      ],
+      sofa_opt_carry: [
+        {
+          speaker: 'robo',
+          emotion: '진지함',
+          action: '소파에서 니노의 몸을 가뿐하게 안아 올려 세운다',
+          text: "안 되겠다. 감기 걸려. 방에 가서 제대로 누워."
+        },
+        {
+          speaker: 'nino',
+          emotion: '놀람',
+          action: '갑작스러운 스킨십에 놀라 로보의 목을 끌어안는다',
+          text: "앗... 뭐야! 갑자기 안아 들면 니노 깜짝 놀라잖아, 로보!"
+        },
+        {
+          speaker: 'robo',
+          emotion: '은밀함',
+          action: '귓가에 조용하고 낮게 속삭인다',
+          text: "가만히 있어. 떨어뜨린다."
+        }
+      ],
+
+      // NEW 2: Soundproof Booth Late Night Intimate Tension
+      booth_touch: [
+        {
+          speaker: 'robo',
+          emotion: '집중',
+          action: '방음부스 안 밀폐된 좁은 공간에서 모니터를 조작하고 있다',
+          text: "니노, 부스 문 열어둬라. 너 들어오니까 너무 좁잖아."
+        },
+        {
+          speaker: 'nino',
+          emotion: '장난기',
+          action: '문고리를 찰칵 잠그고 로보의 작업 의자 뒤로 밀착해 들어온다',
+          text: "에에~ 일부러 닫았는데? 방음 부스 안이니까 밖에는 아무 소리도 안 들리겠네."
+        },
+        {
+          speaker: 'robo',
+          emotion: '붉어진 얼굴',
+          action: '의자를 돌려 니노와 눈을 똑바로 맞춘다. 둘의 거리가 불과 몇 cm가 된다',
+          text: "……뭐하는 거냐, 지금. 도발하는 건가?"
+        },
+        {
+          speaker: 'nino',
+          emotion: '숨막힘',
+          action: '낮아진 로보의 톤과 가까워진 얼굴에 순간 숨을 들이켠다',
+          text: "아, 아니... 그냥 로보가 녹음할 때 어떤 표정인지 가까이서 보려고..."
+        },
+        {
+          speaker: 'robo',
+          emotion: '나즈막함',
+          action: '니노의 허리 뒤 벽에 손을 짚어 니노를 가둔다',
+          text: "그렇게 가까이서 보면, 내가 작업에 집중이 되겠냐."
+        }
+      ],
+
+      // NEW 3: Casual Hair Stroke & Touch
+      hair_touch: [
+        {
+          speaker: 'nino',
+          emotion: '나른함',
+          action: '바닥 러그에 앉아 과자를 집어먹다 로보를 올려다본다',
+          text: "로보, 니노 머리카락 끝에 갈라졌어? 봐줘."
+        },
+        {
+          speaker: 'robo',
+          emotion: '세심',
+          action: '무릎을 꿇고 앉아 니노의 머리카락을 섬세한 손길로 만진다',
+          text: "약간 상했네. 네가 헤어 에센스 안 바르고 대충 말려서 그렇잖아."
+        },
+        {
+          speaker: 'nino',
+          emotion: '설렘',
+          action: '로보의 긴 손가락이 목덜미를 스치자 흠칫하며 목을 축인다',
+          text: "으응... 로보 손 간지러워. 꼭 헤어 디자이너 같네."
+        },
+        {
+          speaker: 'robo',
+          emotion: '덤덤',
+          action: '머리를 가볍게 정리해주고 귀 뒤로 넘겨준다',
+          text: "말만 하지 말고 제때 바르기나 해라. 나한테 챙겨달라고 하지 말고."
+        }
+      ],
+
+      // NEW 4: Back-hug While Cooking
+      backhug_cook: [
+        {
+          speaker: 'robo',
+          emotion: '진지',
+          action: '주방에서 칼로 야채를 조심스럽게 다듬고 있다',
+          text: "니노, 조리대 근처 위험하니까 비켜라. 칼 든 손에 부딪히면 어쩌려고."
+        },
+        {
+          speaker: 'nino',
+          emotion: '애교',
+          action: '로보의 등 뒤로 슬그머니 다가가 허리를 꼭 끌어안는다',
+          text: "니노 배고파서 현기증 난단 말이야~ 로보 등 진짜 넓다. 든든해."
+        },
+        {
+          speaker: 'robo',
+          emotion: '한숨',
+          action: '칼질을 멈추고 등에 닿은 체온을 느끼며 조용히 멈춰 선다',
+          text: "……너 정말 안 떨어질 거냐. 이러면 볶음밥 탄다."
+        },
+        {
+          speaker: 'nino',
+          emotion: '장난',
+          action: '로보의 등에 볼을 비비며 웅얼거린다',
+          text: "타도 되니까 딱 1분만 이러고 있자. 로보 냄새 좋아."
+        },
+        {
+          speaker: 'robo',
+          emotion: '다정',
+          action: '손을 씻고 뒤돌아 니노의 볼을 살짝 꼬집는다',
+          text: "고집쟁이... 알았다. 대신 다 만들어지면 그릇은 네가 날라."
+        }
+      ],
+
+      /* Existing base scenarios with revised tones retained... */
+      chat_living: [
+        {
+          speaker: 'nino',
+          emotion: '나른함',
+          action: '소파에 느긋하게 파묻히며 휴대폰을 만지작거린다',
+          text: "아~ 로보. 니노 오늘 약간 아무것도 하기 싫은 날이야... 멍해."
+        },
+        {
+          speaker: 'robo',
+          emotion: '무덤덤',
+          action: '안경을 고쳐 쓰며 차가운 컵을 탁자에 내려놓는다',
+          text: "뭐하냐, 너. 아침부터 소파랑 한 몸 돼서 뒹굴거리기만 하고."
+        },
+        {
+          speaker: 'nino',
+          emotion: '투덜',
+          action: '입술을 삐죽이며 폰을 엎어놓는다',
+          text: "뭐야아, 니노도 쉬는 날엔 이럴 수 있지! 로보는 쉬는 날에도 계속 뭐 정리하잖아."
+        },
+        {
+          speaker: 'robo',
+          emotion: '담백',
+          action: '니노가 굴려둔 쿠션을 제자리에 놓는다',
+          text: "안 치우면 네가 어질러놓은 게 발에 걸리니까 그렇지. 밥은 먹었냐?"
+        }
+      ],
+      pet_play: [
+        {
+          speaker: 'dog',
+          emotion: '미역이',
+          action: '검은 강아지 미역이가 밧줄 장난감을 입에 물고 꼬리를 친다',
+          text: "(미역이가 니노 발치에 밧줄을 던져두고 멍멍 울어댑니다)"
+        },
+        {
+          speaker: 'nino',
+          emotion: '애정',
+          action: '바닥에 앉아 미역이 턱 밑을 긁어준다',
+          text: "미역아~ 또 놀아달라고? 니노 지금 약간 귀찮은데... 그래도 터그놀이 딱 5분만 해주까?"
+        },
+        {
+          speaker: 'cat',
+          emotion: '도톨',
+          action: '도톨이가 로보의 작업 의자 한가운데를 차지하고 눕는다',
+          text: "(도톨이가 눈을 감고 식빵을 굽기 시작합니다)"
+        },
+        {
+          speaker: 'robo',
+          emotion: '곤란',
+          action: '의자 앞을 가만히 서서 바라보다가 보조 의자를 끌어온다',
+          text: "……또 내 자리 차지했네. 니노, 네 반려견 좀 챙겨라. 도톨이는 내 의자에서 비킬 생각 없으니까."
+        }
+      ]
+    };
+
+    /* ===================================================================
+       3. SYSTEM AUDIO & SYNTH VOICE BLEEP
+       =================================================================== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTypeSound(speaker) {
+      if (!config.soundOn) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = speaker === 'nino' ? 'sine' : speaker === 'robo' ? 'triangle' : 'square';
+        const freq = speaker === 'nino' ? 410 + Math.random()*70 : speaker === 'robo' ? 175 + Math.random()*25 : 280;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    /* ===================================================================
+       4. VISUAL NOVEL RENDER ENGINE
+       Single implementation: typewriter, manual advance, and autoplay.
+       =================================================================== */
+    function triggerScenario(key) {
+      if (!Scenarios[key]) return;
+      if (autoPlayTimer) clearTimeout(autoPlayTimer);
+      currentScript = Scenarios[key];
+      scriptIndex = 0;
+      renderDialogueNode();
+    }
+
+    function updateAutoPlayButton() {
+      const btn = document.getElementById('btnAutoPlay');
+      const label = document.getElementById('autoPlayText');
+      if (!btn || !label) return;
+
+      if (autoPlay) {
+        btn.className = "text-[11px] px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-md transition border border-rose-600 flex items-center gap-1 font-semibold shadow-xs";
+        label.textContent = "자동 넘기기 ON";
+      } else {
+        btn.className = "text-[11px] px-2.5 py-1 bg-[#f3eae0] hover:bg-[#e8dbc9] text-[#675b4d] rounded-md transition border border-[#d3c2aa] flex items-center gap-1 font-semibold";
+        label.textContent = "자동 넘기기 OFF";
+      }
+    }
+
+    function renderDialogueNode() {
+      if (scriptIndex >= currentScript.length) return;
+      if (typingTimer) clearInterval(typingTimer);
+      if (autoPlayTimer) clearTimeout(autoPlayTimer);
+
+      const node = currentScript[scriptIndex];
+      const speakerTag = document.getElementById('speakerTag');
+      const speakerActionHint = document.getElementById('speakerActionHint');
+      const vnText = document.getElementById('vnText');
+      const choiceContainer = document.getElementById('choiceContainer');
+      const roboPort = document.getElementById('portraitRobo');
+      const ninoPort = document.getElementById('portraitNino');
+      const petPort = document.getElementById('portraitPet');
+
+      choiceContainer.innerHTML = '';
+
+      if (node.speaker === 'player') {
+        isTyping = false;
+        speakerTag.className = "font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs bg-amber-600";
+        speakerTag.textContent = "당신의 선택";
+        speakerActionHint.textContent = "(어떻게 답할까?)";
+        vnText.textContent = "다음 대화의 방향을 선택해 주세요.";
+        vnText.classList.remove('typing-cursor');
+
+        node.options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = "w-full text-left p-2.5 text-xs bg-[#fdfbf6] hover:bg-[#f3eae0] border border-[#dcd0bd] rounded-xl font-medium text-[#433d37] transition shadow-2xs hover:border-[#bfa990]";
+          btn.textContent = "👉 " + opt.text;
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            triggerScenario(opt.next);
+          };
+          choiceContainer.appendChild(btn);
+        });
+        return;
+      }
+
+      if (node.speaker === 'robo') {
+        speakerTag.className = "font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs bg-slate-700";
+        speakerTag.textContent = config.roboName;
+        document.getElementById('roboEmotionBadge').textContent = node.emotion || '차분';
+        roboPort.style.transform = 'scale(1.06)';
+        roboPort.style.opacity = '1';
+        ninoPort.style.transform = 'scale(0.95)';
+        ninoPort.style.opacity = '0.6';
+        petPort.classList.add('hidden');
+        moveActorToFocus('robo');
+      } else if (node.speaker === 'nino') {
+        speakerTag.className = "font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs bg-rose-500";
+        speakerTag.textContent = config.ninoName;
+        document.getElementById('ninoEmotionBadge').textContent = node.emotion || '생각중';
+        ninoPort.style.transform = 'scale(1.06)';
+        ninoPort.style.opacity = '1';
+        roboPort.style.transform = 'scale(0.95)';
+        roboPort.style.opacity = '0.6';
+        petPort.classList.add('hidden');
+        moveActorToFocus('nino');
+      } else if (node.speaker === 'dog' || node.speaker === 'cat') {
+        speakerTag.className = "font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs bg-amber-700";
+        speakerTag.textContent = node.speaker === 'dog' ? '미역이 (강아지)' : '도톨 (고양이)';
+        document.getElementById('petEmoji').textContent = node.speaker === 'dog' ? '🐕' : '🐈';
+        document.getElementById('petName').textContent = node.speaker === 'dog' ? '미역이' : '도톨';
+        petPort.classList.remove('hidden');
+        roboPort.style.opacity = '0.5';
+        ninoPort.style.opacity = '0.5';
+      }
+
+      speakerActionHint.textContent = node.action ? `(${node.action})` : '';
+
+      let charIdx = 0;
+      vnText.textContent = '';
+      isTyping = true;
+      vnText.classList.add('typing-cursor');
+
+      typingTimer = setInterval(() => {
+        if (charIdx < node.text.length) {
+          vnText.textContent += node.text.charAt(charIdx);
+          if (charIdx % 2 === 0) playTypeSound(node.speaker);
+          charIdx++;
+        } else {
+          finishTyping(node, speakerTag.textContent);
+        }
+      }, Math.max(5, Number(config.textSpeed) || 45));
+    }
+
+    function finishTyping(node, speakerName) {
+      if (typingTimer) {
+        clearInterval(typingTimer);
+        typingTimer = null;
+      }
+      isTyping = false;
+
+      const vnText = document.getElementById('vnText');
+      vnText.textContent = node.text;
+      vnText.classList.remove('typing-cursor');
+
+      const choiceContainer = document.getElementById('choiceContainer');
+      choiceContainer.innerHTML = '';
+      logDialogueHistory(speakerName, node.text);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = "col-span-2 w-full text-center py-2 text-xs bg-[#d97757] hover:bg-[#c76545] text-white font-bold rounded-xl transition shadow-xs";
+      nextBtn.textContent = scriptIndex < currentScript.length - 1 ? "다음 대화 ▶" : "대화 완료 ✓";
+      nextBtn.onclick = (e) => {
+        e.stopPropagation();
+        advanceDialogue();
+      };
+      choiceContainer.appendChild(nextBtn);
+
+      // Keep autoplay running only when another dialogue node exists.
+      if (autoPlay && scriptIndex < currentScript.length - 1) {
+        if (autoPlayTimer) clearTimeout(autoPlayTimer);
+        autoPlayTimer = setTimeout(() => {
+          autoPlayTimer = null;
+          if (autoPlay && !isTyping) advanceDialogue();
+        }, 1800);
+      }
+    }
+
+    function advanceDialogue() {
+      if (!currentScript.length) return;
+
+      if (autoPlayTimer) {
+        clearTimeout(autoPlayTimer);
+        autoPlayTimer = null;
+      }
+
+      if (isTyping) {
+        const node = currentScript[scriptIndex];
+        finishTyping(node, document.getElementById('speakerTag').textContent);
+        return;
+      }
+
+      scriptIndex++;
+      if (scriptIndex < currentScript.length) {
+        renderDialogueNode();
+      } else {
+        document.getElementById('vnText').textContent =
+          "(대화가 완결되었습니다. 새로운 일상 시나리오를 선택해 보세요.)";
+        document.getElementById('choiceContainer').innerHTML = '';
+      }
+    }
+
+    function handleDialogueBoxClick(e) {
+      if (e.target.closest('button') || e.target.closest('#choiceContainer')) return;
+      advanceDialogue();
+    }
+
+    function toggleAutoPlay(e) {
+      if (e) e.stopPropagation();
+      autoPlay = !autoPlay;
+      updateAutoPlayButton();
+
+      if (autoPlay) {
+        // If text has finished, schedule the next line; otherwise it will
+        // be scheduled automatically by finishTyping().
+        if (!isTyping && currentScript.length && scriptIndex < currentScript.length) {
+          const node = currentScript[scriptIndex];
+          if (node && node.speaker !== 'player') {
+            autoPlayTimer = setTimeout(() => {
+              autoPlayTimer = null;
+              if (autoPlay && !isTyping) advanceDialogue();
+            }, 1800);
+          }
+        }
+      } else if (autoPlayTimer) {
+        clearTimeout(autoPlayTimer);
+        autoPlayTimer = null;
+      }
+    }
+
+    updateAutoPlayButton();
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.code === 'Space' || e.code === 'Enter') &&
+          !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(document.activeElement.tagName)) {
+        e.preventDefault();
+        advanceDialogue();
+      }
+    });
+
+    /* ===================================================================
+       5. HOUSE MAP & AUTOMATIC SIMULATION ENGINE
+       =================================================================== */
+    function renderMapElements() {
+      actors.forEach(actor => {
+        const roomEl = document.getElementById(`room-${actor.room}`);
+        if (!roomEl) return;
+
+        if (!actor.el) {
+          actor.el = document.createElement('div');
+          actor.el.className = `map-avatar ${actor.id === 'robo' ? 'robo-avatar' : actor.id === 'nino' ? 'nino-avatar' : 'bg-amber-100 text-slate-800'}`;
+          actor.el.textContent = actor.id === 'robo' ? '🌲' : actor.id === 'nino' ? '🌻' : actor.id === 'dog' ? '🐕' : '🐈';
+          
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = actor.name;
+          actor.el.appendChild(tag);
+          roomEl.appendChild(actor.el);
+        } else if (actor.el.parentElement !== roomEl) {
+          roomEl.appendChild(actor.el);
+        }
+
+        actor.el.style.left = `calc(${actor.x}% - 15px)`;
+        actor.el.style.top = `calc(${actor.y}% - 15px)`;
+      });
+    }
+
+    function moveActorToFocus(actorId) {
+      const act = actors.find(a => a.id === actorId);
+      if (act) {
+        act.room = 'living';
+        act.x = 25 + Math.random() * 50;
+        act.y = 30 + Math.random() * 40;
+        renderMapElements();
+      }
+    }
+
+    function quickMove(roomId) {
+      actors[0].room = roomId;
+      actors[1].room = roomId;
+      actors[0].x = 30;
+      actors[1].x = 70;
+      renderMapElements();
+      
+      const roomNames = {
+        roboRoom: '로보의 방', ninoRoom: '니노의 방', studio: '방음부스 작업실',
+        living: '거실', kitchen: '주방', bath: '욕실'
+      };
+      document.getElementById('vnLocationTag').textContent = "📍 " + (roomNames[roomId] || '집 안');
+      addDailyFeed(`${config.roboName}와 ${config.ninoName}가 ${roomNames[roomId]}(으)로 이동했습니다.`);
+    }
+
+    function autonomousSimulationStep() {
+      if (timeState.paused) return;
+
+      // Clock Increment
+      timeState.mins += 5;
+      if (timeState.mins >= 1440) {
+        timeState.mins = 0;
+        timeState.day++;
+      }
+
+      const h = String(Math.floor(timeState.mins / 60)).padStart(2, '0');
+      const m = String(timeState.mins % 60).padStart(2, '0');
+      document.getElementById('timeClock').textContent = `${h}:${m}`;
+      
+      const hours = Math.floor(timeState.mins / 60);
+      const period = hours >= 12 ? '오후' : '오전';
+      document.getElementById('timePeriodBadge').textContent = period;
+
+      // Random Actor Movement
+      actors.forEach(actor => {
+        if (Math.random() < 0.35) {
+          const rooms = ['roboRoom', 'ninoRoom', 'studio', 'living', 'kitchen'];
+          actor.room = rooms[Math.floor(Math.random() * rooms.length)];
+          actor.x = 20 + Math.random() * 60;
+          actor.y = 25 + Math.random() * 50;
+        }
+      });
+      renderMapElements();
+
+      // Random Banter / Daily Feed Generation
+      if (Math.random() < 0.25) {
+        const randomEvents = [
+          `니노가 소파에 기대어 느긋하게 음악을 감상합니다.`,
+          `로보가 안경을 고쳐 쓰며 작업실 청소를 마칩니다.`,
+          `도톨이가 로보의 방음부스 문 앞자리를 지키고 앉아있습니다.`,
+          `미역이가 장난감 공을 물고 니노 발치에 가만히 엎드립니다.`,
+          `로보가 니노가 거실에 둔 컵을 말없이 주방으로 치웁니다.`,
+          `니노가 생각에 잠긴 표정으로 창밖을 바라봅니다.`
+        ];
+        const evt = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+        addDailyFeed(`${h}:${m} · ${evt}`);
+      }
+    }
+
+    function addDailyFeed(msg) {
+      const feed = document.getElementById('dailyLogFeed');
+      const item = document.createElement('div');
+      item.className = "p-1.5 rounded-lg bg-[#f5efe6] border border-[#e5d8c5] transition-all";
+      item.textContent = msg;
+      feed.prepend(item);
+      if (feed.children.length > 20) feed.lastChild.remove();
+    }
+
+    function logDialogueHistory(speaker, text) {
+      conversationHistory.push({ speaker, text, time: document.getElementById('timeClock').textContent });
+      const list = document.getElementById('historyLogList');
+      const d = document.createElement('div');
+      d.className = "p-2 rounded-lg bg-[#f9f5ed] border border-[#e8dccb]";
+      d.innerHTML = `<span class="font-bold text-[#d97757]">[${speaker}]</span> <span class="text-[10px] text-gray-400">(${document.getElementById('timeClock').textContent})</span><p class="mt-0.5 text-gray-700">${text}</p>`;
+      list.prepend(d);
+    }
+
+    /* ===================================================================
+       6. UI CONTROLS & MODALS
+       =================================================================== */
+    function toggleSettingsModal() {
+      document.getElementById('settingsModal').classList.toggle('hidden');
+    }
+
+    function toggleLogModal() {
+      document.getElementById('logModal').classList.toggle('hidden');
+    }
+
+    function saveSettings() {
+      config.title = document.getElementById('cfgTitle').value || "로보와 니노의 집";
+      config.roboName = document.getElementById('cfgRobo').value || "로보";
+      config.ninoName = document.getElementById('cfgNino').value || "니노";
+      config.textSpeed = parseInt(document.getElementById('cfgSpeed').value) || 45;
+      localStorage.setItem('skoshism_cfg', JSON.stringify(config));
+
+      document.getElementById('appTitle').textContent = "🏠 " + config.title;
+      document.getElementById('badgeRoboName').textContent = config.roboName;
+      document.getElementById('badgeNinoName').textContent = config.ninoName;
+      document.getElementById('labelRobo').textContent = config.roboName;
+      document.getElementById('labelNino').textContent = config.ninoName;
+
+      toggleSettingsModal();
+    }
+
+    // Toggle Rain / Snow / Night Weather Filter
+    document.getElementById('btnWeather').onclick = () => {
+      const overlay = document.getElementById('weatherOverlay');
+      if (timeState.weather === 'sunny') {
+        timeState.weather = 'rain';
+        overlay.className = 'weather-overlay weather-rain';
+        addDailyFeed("창밖에 빗소리가 조용히 내리기 시작합니다.");
+      } else if (timeState.weather === 'rain') {
+        timeState.weather = 'night';
+        overlay.className = 'weather-overlay weather-night';
+        addDailyFeed("집 주변에 조용한 밤 기운이 감돕니다.");
+      } else {
+        timeState.weather = 'sunny';
+        overlay.className = 'weather-overlay';
+        addDailyFeed("햇빛이 거실 창문으로 따뜻하게 들어옵니다.");
+      }
+    };
+
+    // Pause & Resume Simulation
+    document.getElementById('btnPause').onclick = () => {
+      timeState.paused = !timeState.paused;
+      const icon = document.getElementById('pauseIcon');
+      icon.className = timeState.paused ? "fa-solid fa-play" : "fa-solid fa-pause";
+    };
+
+    // Audio Mute Toggle
+    document.getElementById('soundBtn').onclick = () => {
+      config.soundOn = !config.soundOn;
+      document.getElementById('soundStatus').textContent = config.soundOn ? "사운드 ON" : "사운드 OFF";
+    };
+
+    document.getElementById('settingsBtn').onclick = toggleSettingsModal;
+
+    /* ===================================================================
+       7. AUTONOMOUS CHARACTER CONVERSATION + SPEECH BUBBLES
+       Standalone HTML cannot call a hosted LLM without a server/API key.
+       This local character engine creates varied, memory-aware exchanges.
+       =================================================================== */
+    const usedDialogueLines = new Set();
+    let bubbleTypingTimer = null;
+    let autoGenerationCount = 0;
+    const characterLines = {
+      nino: [
+        ["야, 깡통. 나 심심한데 뭐 재밌는 거 없어?", "장난스럽게"],
+        ["아저씨, 나 지금 엄청 중요한 고민 중이거든. 간식 먹을지 말지.", "능청스럽게"],
+        ["너 그렇게 계속 화면만 보면 눈 아파. 잠깐 나 좀 봐.", "투덜거리며"],
+        ["흐흥, 방금 나 챙겨준 거지? 모르는 척해도 다 알거든.", "의기양양하게"],
+        ["나 배고파. 근데 일어나기는 싫어. 네가 해결해.", "뻔뻔하게"],
+        ["님, 오늘은 나한테 얼마나 다정할 예정인데?", "떠보듯이"],
+        ["너 가끔 보면 진짜 깡통 같아. …그래도 싫다는 건 아니야.", "작게 웃으며"],
+        ["나 방금 좋은 생각 했어. 우리 아무것도 안 하고 같이 있자.", "느긋하게"],
+        ["아, 그 표정! 나한테 할 말 있는 거 다 티 나.", "장난스럽게"],
+        ["너 피곤해 보여. 이리 와 봐. 내가 잠깐 기대게 해줄게.", "다정하게"],
+        ["아저씨, 나 오늘 칭찬 하나만 해주면 안 돼?", "기대하며"],
+        ["흥, 대답 늦었어. 나 삐진 척할 거야.", "새침하게"],
+        ["나 이거 같이 하고 싶어. 혼자 하면 재미없잖아.", "솔직하게"],
+        ["너는 꼭 말은 퉁명스럽게 하면서 손은 먼저 움직이더라.", "흐뭇하게"],
+        ["깡통, 내 쪽으로 조금만 와. 거기 너무 멀어.", "태연한 척"],
+        ["나 오늘 기분 괜찮아. 네가 옆에 있어서 그런가?", "쑥스럽게"]
+      ],
+      robo: [
+        ["시끄럽다. 심심하면 네가 할 일을 찾아.", "덤덤하게"],
+        ["간식은 주방에 있다. 대신 먹고 나면 네가 정리해.", "무심하게"],
+        ["화면만 보는 게 아니다. 네가 또 무슨 사고를 치나 보는 거지.", "건조하게"],
+        ["……알았으니까 이리 와. 감기 들겠다.", "낮게"],
+        ["네 고민은 늘 쓸데없어 보이는데, 이상하게 대충 넘기긴 어렵군.", "작게 한숨 쉬며"],
+        ["먼저 와 놓고 왜 이제 와서 부끄러워하는 거냐.", "피식 웃으며"],
+        ["칭찬을 꼭 말로 들어야 아나. 아까부터 네 쪽 일만 도와주고 있잖아.", "시선을 피하며"],
+        ["그렇게 쳐다보지 마라. 집중 안 되니까.", "당황한 듯"],
+        ["네가 편하면 됐다. 대신 무리하지는 마.", "차분하게"],
+        ["……간식 하나 더 먹어도 된다. 오늘은 특별히 봐주지.", "못 이기는 척"],
+        ["장난은 적당히 해라. 네가 웃으면 뭐라고 하기도 애매해지니까.", "작게 중얼거리며"],
+        ["나도 쉬고 있다. 네 옆에 앉아 있는 게 그렇게 이상하냐.", "덤덤하게"],
+        ["그건 네가 직접 해. 대신 어려우면 부르면 된다.", "단호하지만 다정하게"],
+        ["……손 줘 봐. 뭐 묻었잖아.", "세심하게"],
+        ["네가 먼저 시작한 거다. 끝까지 책임져.", "장난스럽게"],
+        ["오늘은 조금 더 같이 있어도 괜찮겠군.", "조용히"]
+      ]
+    };
+
+    function chooseFreshLine(speaker) {
+      const pool = characterLines[speaker];
+      const fresh = pool.filter(item => !usedDialogueLines.has(speaker + '|' + item[0]));
+      if (!fresh.length) {
+        // Expand the conversation indefinitely with varied, character-consistent follow-ups.
+        const ninoExtras = [
+          '근데 너라면 어떻게 할 건데?', '대답해 봐. 나 은근히 궁금하거든.',
+          '아무튼 오늘은 내 옆에 있어.', '그 얘기는 나중에 더 해줘.',
+          '…방금 건 조금 진심이었어.', '자, 이제 네 차례야.'
+        ];
+        const roboExtras = [
+          '그러니까 잠깐 얌전히 있어.', '네가 원한다면 조금 더 들어주지.',
+          '대신 무리하지 않는다는 조건이다.', '그 표정은 반칙이군.',
+          '……됐으니까 이쪽으로 와.', '이따가 계속 얘기하자.'
+        ];
+        const base = pool[Math.floor(Math.random() * pool.length)][0];
+        const extraPool = speaker === 'nino' ? ninoExtras : roboExtras;
+        const extra = extraPool[Math.floor(Math.random() * extraPool.length)];
+        const generated = base.replace(/[.!?…~]+$/, '') + '. ' + extra;
+        return [generated, speaker === 'nino' ? '장난스럽게' : '차분하게'];
+      }
+      return fresh[Math.floor(Math.random() * fresh.length)];
+    }
+
+    function makeAutonomousNode() {
+      const last = conversationHistory.length ? conversationHistory[conversationHistory.length-1].speaker : 'nino';
+      const speaker = last === '니노' || last === config.ninoName || last === 'nino' ? 'robo' : 'nino';
+      const chosen = chooseFreshLine(speaker);
+      usedDialogueLines.add(speaker + '|' + chosen[0]);
+      autoGenerationCount++;
+      return { speaker, emotion: chosen[1], action: speaker === 'nino' ? '로보의 반응을 살피며 말을 건넨다' : '니노를 바라보다가 짧게 대답한다', text: chosen[0] };
+    }
+
+    function normalizeCharacterSpeech(node) {
+      if (!node || !node.text) return node;
+      let t = node.text;
+      if (node.speaker === 'nino') {
+        // Nino speaks in first person and addresses Robo with his preferred nicknames.
+        t = t.replace(/니노/g, '나').replace(/로보/g, () => ['너','아저씨','깡통','님'][Math.floor(Math.random()*4)]);
+      } else if (node.speaker === 'robo') {
+        // Robo never refers to himself by his own name.
+        t = t.replace(/로보/g, '나');
+      }
+      node.text = t;
+      return node;
+    }
+
+    // Replace the previous renderer with a single, guarded typewriter loop.
+    window.renderDialogueNode = function() {
+      if (scriptIndex >= currentScript.length) {
+        if (autoPlay) { currentScript.push(makeAutonomousNode()); }
+        else return;
+      }
+      if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+      if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+      const node = normalizeCharacterSpeech(currentScript[scriptIndex]);
+      const speakerTag = document.getElementById('speakerTag');
+      const actionHint = document.getElementById('speakerActionHint');
+      const vnText = document.getElementById('vnText');
+      const choiceContainer = document.getElementById('choiceContainer');
+      const bubble = document.getElementById('speechBubble');
+      const bubbleName = document.getElementById('speechBubbleName');
+      const bubbleText = document.getElementById('speechBubbleText');
+      choiceContainer.innerHTML = '';
+
+      if (node.speaker === 'player') {
+        if (autoPlay) {
+          currentScript[scriptIndex] = makeAutonomousNode();
+          renderDialogueNode();
+          return;
+        }
+        isTyping = false;
+        speakerTag.textContent = '대화 선택';
+        actionHint.textContent = '(어떻게 답할까?)';
+        vnText.textContent = '다음 대화의 방향을 선택해 주세요.';
+        bubble.style.display = 'none';
+        (node.options || []).forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'w-full text-left p-2.5 text-xs bg-[#fdfbf6] hover:bg-[#f3eae0] border border-[#dcd0bd] rounded-xl';
+          btn.textContent = '👉 ' + opt.text;
+          btn.onclick = e => { e.stopPropagation(); triggerScenario(opt.next); };
+          choiceContainer.appendChild(btn);
+        });
+        return;
+      }
+
+      const isNino = node.speaker === 'nino';
+      const displayName = isNino ? config.ninoName : node.speaker === 'robo' ? config.roboName : (node.speaker === 'dog' ? '미역이' : '도톨');
+      speakerTag.textContent = displayName;
+      speakerTag.className = 'font-bold text-sm text-white px-3 py-1 rounded-lg shadow-xs ' + (isNino ? 'bg-rose-500' : 'bg-slate-700');
+      actionHint.textContent = node.action ? '(' + node.action + ')' : '';
+      bubble.dataset.speaker = node.speaker;
+      bubbleName.textContent = displayName;
+      bubbleText.textContent = '';
+      bubble.style.display = 'block';
+      bubble.style.setProperty('--tail-left', isNino ? '70%' : '28%');
+      vnText.textContent = '';
+      document.getElementById('roboEmotionBadge').textContent = node.speaker === 'robo' ? (node.emotion || '차분') : '차분함';
+      document.getElementById('ninoEmotionBadge').textContent = node.speaker === 'nino' ? (node.emotion || '장난기') : '평소';
+      document.getElementById('portraitRobo').style.opacity = isNino ? '.62' : '1';
+      document.getElementById('portraitNino').style.opacity = isNino ? '1' : '.62';
+      document.getElementById('portraitRobo').style.transform = isNino ? 'scale(.96)' : 'scale(1.06)';
+      document.getElementById('portraitNino').style.transform = isNino ? 'scale(1.06)' : 'scale(.96)';
+      document.getElementById('portraitPet').classList.add('hidden');
+      if (typeof moveActorToFocus === 'function' && (node.speaker === 'robo' || node.speaker === 'nino')) moveActorToFocus(node.speaker);
+
+      let i = 0;
+      isTyping = true;
+      vnText.classList.add('typing-cursor');
+      typingTimer = setInterval(() => {
+        if (i < node.text.length) {
+          const ch = node.text.charAt(i++);
+          bubbleText.textContent += ch;
+          vnText.textContent += ch;
+          if (i % 3 === 0) playTypeSound(node.speaker);
+        } else {
+          finishTyping(node, displayName);
+        }
+      }, Math.max(18, Math.min(65, Number(config.textSpeed) || 35)));
+    };
+
+    window.finishTyping = function(node, speakerName) {
+      if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+      isTyping = false;
+      document.getElementById('vnText').textContent = node.text;
+      document.getElementById('vnText').classList.remove('typing-cursor');
+      document.getElementById('speechBubbleText').textContent = node.text;
+      logDialogueHistory(speakerName, node.text);
+      const choices = document.getElementById('choiceContainer');
+      choices.innerHTML = '';
+      if (!autoPlay) {
+        const next = document.createElement('button');
+        next.className = 'col-span-2 w-full text-center py-2 text-xs bg-[#d97757] hover:bg-[#c76545] text-white font-bold rounded-xl';
+        next.textContent = '다음 대화 ▶';
+        next.onclick = e => { e.stopPropagation(); advanceDialogue(); };
+        choices.appendChild(next);
+      }
+      if (autoPlay) {
+        autoPlayTimer = setTimeout(() => {
+          autoPlayTimer = null;
+          if (!autoPlay) return;
+          scriptIndex++;
+          if (scriptIndex >= currentScript.length) currentScript.push(makeAutonomousNode());
+          renderDialogueNode();
+        }, 1450);
+      }
+    };
+
+    window.advanceDialogue = function() {
+      if (autoPlay) return; // Autoplay owns progression; avoid double-advancing on clicks.
+      if (!currentScript.length) return;
+      if (isTyping) { finishTyping(currentScript[scriptIndex], document.getElementById('speakerTag').textContent); return; }
+      if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+      scriptIndex++;
+      if (scriptIndex >= currentScript.length) {
+        document.getElementById('speechBubble').style.display = 'none';
+        document.getElementById('vnText').textContent = '(다른 일상 장면을 선택하거나 자동 넘기기를 켜 보세요.)';
+        document.getElementById('choiceContainer').innerHTML = '';
+      } else renderDialogueNode();
+    };
+
+    window.toggleAutoPlay = function(e) {
+      if (e) e.stopPropagation();
+      autoPlay = !autoPlay;
+      updateAutoPlayButton();
+      if (autoPlay) {
+        if (!currentScript.length) { currentScript = []; scriptIndex = 0; }
+        if (isTyping) return;
+        if (scriptIndex >= currentScript.length) currentScript.push(makeAutonomousNode());
+        renderDialogueNode();
+      } else {
+        if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+        if (isTyping && currentScript[scriptIndex]) {
+          finishTyping(currentScript[scriptIndex], document.getElementById('speakerTag').textContent);
+        }
+      }
+    };
+
+    window.triggerScenario = function(key) {
+      if (!Scenarios[key]) return;
+      if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+      if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+      currentScript = Scenarios[key].map(item => ({...item}));
+      scriptIndex = 0;
+      renderDialogueNode();
+    };
+
+    /* ===================================================================
+       7. REAL GENERATIVE AI CONVERSATION
+       =================================================================== */
+    let aiMode = false;
+    let aiBusy = false;
+    let aiCategory = '일상';
+    let aiNextSpeaker = 'nino';
+    let aiTurnHistory = [];
+    let aiSeenSentences = new Set();
+    let aiTypeTimer = null;
+    let aiAutoTimer = null;
+
+    const aiCategoryGuides = {
+      '일상': '함께 사는 집에서 벌어지는 자연스러운 일상. 식사, 집안일, 휴식, 사소한 장난, 반려동물, 외출 준비 등.',
+      '방송': '방송 준비와 진행, 마이크·장비 문제, 채팅 반응, 방송 후 뒷정리와 쉬는 시간. 실제 방송 대화처럼 구체적으로.',
+      '썸띵': '서로 의식하고 신경 쓰는 미묘한 관계의 순간. 질투, 배려, 거리감, 설렘을 과장하지 않고 자연스럽게.',
+      '19': '성인 취향의 분위기, 아슬아슬한 농담과 은근한 긴장감. 노골적이거나 자세한 성행위 묘사는 하지 말고 합의와 경계를 존중.',
+      '오타쿠': '애니메이션, 게임, 버튜버, 굿즈, 행사, 최애와 덕질 문화에 관한 구체적이고 살아 있는 대화.',
+      '스코시즘': 'SKOSHISM 세계관과 두 사람의 집, 작업실, 관계, 고유한 설정을 중심으로 한 에피소드. 설정을 임의로 뒤집지 말 것.',
+      '그 외': '정해진 주제 없이 새로운 사건이나 예상 밖의 상황을 만들어 전개. 앞선 대화와 자연스럽게 연결할 것.'
+    };
+
+    function aiStatus(message, kind='') {
+      const el = document.getElementById('aiConnectionStatus');
+      if (!el) return;
+      el.textContent = message;
+      el.className = 'text-[11px] leading-relaxed ' + kind;
+    }
+
+    function getAISettings() {
+      const model = document.getElementById('aiModel')?.value.trim() || 'gpt-4.1-mini';
+      return { model };
+    }
+
+    function splitDialogueSentences(text) {
+      return String(text || '').split(/(?<=[.!?。！？…])\s*|\n+/u).map(x => x.trim()).filter(Boolean);
+    }
+
+    function normalizeSentence(text) {
+      return String(text || '').toLowerCase().replace(/[\s“”"'‘’.,!?。！？~…·ㆍ]/g, '').trim();
+    }
+
+    function aiSystemPrompt() {
+      return `너는 SKOSHISM 세계관의 두 캐릭터가 실제로 대화하도록 하는 인터랙티브 롤플레이 엔진이다. 반드시 한국어 구어체로, 한 번에 한 캐릭터의 발언만 작성한다.\n\n[캐릭터]\n- 니노: 장난기 있고 감정 표현이 풍부하며 툴툴거리기도 한다. 말이 비교적 많고 즉흥적이며 상대를 놀리거나 반응을 살핀다. 자기 자신을 절대로 '니노'라고 부르지 않고 항상 '나'라고 한다. 로보를 '님', '아저씨', '너', '야', '깡통' 같은 호칭으로 부른다. 로보의 이름을 직접 부르지 않는다.\n- 로보: 과묵하고 담백하며 관찰력이 좋고 세심하다. 필요할 때 짧고 정확하게 말하고 무심한 듯 챙겨준다. 자기 자신을 절대로 '로보'라고 부르지 않고 항상 '나'라고 한다. 니노를 상황에 맞게 '니노', '너' 등으로 부른다.\n- 두 사람 모두 자신을 이름으로 지칭하는 3인칭 말투를 쓰지 않는다.\n\n[대화 규칙]\n- 직전 발언의 구체적인 내용에 반응하고, 서로 대화가 이어지는 인과관계를 만든다. 단순히 번갈아 의미 없는 한마디를 던지지 않는다.\n- 매 턴 새로운 상황·관찰·질문·반응을 만들고, 흔한 인사나 똑같은 애정 표현을 반복하지 않는다. 이미 나온 문장과 같은 문장, 거의 같은 문장, 같은 의미만 바꾼 문장을 재사용하지 않는다.\n- 앞선 대화에서 이미 한 말이나 행동을 다시 설명하지 않는다. 대화가 조금씩 진전되게 하고, 때로는 주제를 바꾸거나 새로운 사건을 자연스럽게 발생시킨다.\n- 인물 성격과 호칭 규칙을 엄격히 지킨다. 대사 안에 화자 이름표를 붙이지 않는다.\n- 행동 묘사는 짧고 구체적으로, 말풍선 대사는 자연스럽게 1~3문장으로 작성한다. 메타 발언이나 AI임을 밝히는 말은 금지한다.\n- 현재 시츄에이션: ${aiCategory}. ${aiCategoryGuides[aiCategory]}\n- 19 항목에서도 노골적인 성행위나 신체 부위의 상세한 성적 묘사는 하지 않는다.\n\n출력은 JSON 하나만: {"text":"실제 대사", "emotion":"짧은 감정", "action":"짧은 행동 묘사"}. 마크다운 코드펜스나 설명은 붙이지 않는다.`;
+    }
+
+    function renderAIBubble(node) {
+      if (aiTypeTimer) clearInterval(aiTypeTimer);
+      if (aiAutoTimer) { clearTimeout(aiAutoTimer); aiAutoTimer = null; }
+      const isNino = node.speaker === 'nino';
+      const displayName = isNino ? config.ninoName : config.roboName;
+      const bubble = document.getElementById('speechBubble');
+      document.getElementById('speakerTag').textContent = displayName;
+      document.getElementById('speakerActionHint').textContent = node.action ? '(' + node.action + ')' : '';
+      document.getElementById('speechBubbleName').textContent = displayName;
+      document.getElementById('speechBubbleText').textContent = '';
+      bubble.dataset.speaker = node.speaker;
+      bubble.style.display = 'block';
+      bubble.style.setProperty('--tail-left', isNino ? '70%' : '28%');
+      document.getElementById('vnText').textContent = '';
+      document.getElementById('vnText').classList.add('typing-cursor');
+      document.getElementById('roboEmotionBadge').textContent = node.speaker === 'robo' ? (node.emotion || '차분') : '차분함';
+      document.getElementById('ninoEmotionBadge').textContent = node.speaker === 'nino' ? (node.emotion || '장난기') : '평소';
+      document.getElementById('portraitRobo').style.opacity = isNino ? '.62' : '1';
+      document.getElementById('portraitNino').style.opacity = isNino ? '1' : '.62';
+      document.getElementById('portraitRobo').style.transform = isNino ? 'scale(.96)' : 'scale(1.06)';
+      document.getElementById('portraitNino').style.transform = isNino ? 'scale(1.06)' : 'scale(.96)';
+      document.getElementById('portraitPet').classList.add('hidden');
+      if (typeof moveActorToFocus === 'function') moveActorToFocus(node.speaker);
+      const text = node.text;
+      let i = 0;
+      isTyping = true;
+      const choices = document.getElementById('choiceContainer');
+      choices.innerHTML = '';
+      aiTypeTimer = setInterval(() => {
+        if (i < text.length) {
+          const ch = text.charAt(i++);
+          document.getElementById('speechBubbleText').textContent += ch;
+          document.getElementById('vnText').textContent += ch;
+          if (i % 3 === 0 && typeof playTypeSound === 'function') playTypeSound(node.speaker);
+        } else {
+          finishAITyping(node);
+        }
+      }, Math.max(16, Math.min(55, Number(config.textSpeed) || 32)));
+    }
+
+    function finishAITyping(node) {
+      if (aiTypeTimer) { clearInterval(aiTypeTimer); aiTypeTimer = null; }
+      isTyping = false;
+      document.getElementById('vnText').textContent = node.text;
+      document.getElementById('vnText').classList.remove('typing-cursor');
+      document.getElementById('speechBubbleText').textContent = node.text;
+      logDialogueHistory(node.speaker === 'nino' ? config.ninoName : config.roboName, node.text);
+      const choices = document.getElementById('choiceContainer');
+      choices.innerHTML = '';
+      if (autoPlay) {
+        aiAutoTimer = setTimeout(() => {
+          aiAutoTimer = null;
+          if (autoPlay && aiMode && !aiBusy) generateAITurn();
+        }, 1900);
+      } else {
+        const next = document.createElement('button');
+        next.className = 'col-span-2 w-full text-center py-2 text-xs bg-[#d97757] hover:bg-[#c76545] text-white font-bold rounded-xl';
+        next.textContent = '다음 대화 ▶';
+        next.onclick = e => { e.stopPropagation(); advanceDialogue(); };
+        choices.appendChild(next);
+      }
+    }
+
+    async function requestAIDialogue(speaker, retryNote='') {
+      const {model} = getAISettings();
+      const transcript = aiTurnHistory.slice(-28).map(x => `${x.speaker === 'nino' ? '니노' : '로보'}: ${x.text}`).join('\n');
+      const seen = Array.from(aiSeenSentences).slice(-100).join(' | ');
+      const instruction = `다음 발언자는 ${speaker === 'nino' ? '니노' : '로보'}다.\n지금까지의 대화:\n${transcript || '(아직 대화 없음)'}\n\n이미 사용한 문장(문장 재사용 금지): ${seen || '(없음)'}\n${retryNote}\n이전 발언에 구체적으로 반응하면서 대화를 진전시키는 새로운 발언 하나만 작성해라.`;
+      const response = await fetch('/.netlify/functions/skoshism-chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({model, messages:[
+          {role:'system', content: aiSystemPrompt()},
+          {role:'user', content: instruction}
+        ]})
+      });
+      if (!response.ok) {
+        let detail = '';
+        try { detail = (await response.json()).error?.message || ''; } catch(e) {}
+        throw new Error(`API 오류 ${response.status}${detail ? ': ' + detail : ''}`);
+      }
+      const data = await response.json();
+      let raw = data.choices?.[0]?.message?.content?.trim() || '';
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch(e) { parsed = {text: raw}; }
+      let text = String(parsed.text || '').trim().replace(/^['“”"]|['“”"]$/g, '');
+      if (!text) throw new Error('AI가 빈 대사를 반환했어. 다시 시작해 줘.');
+      return {speaker, text, emotion: String(parsed.emotion || (speaker === 'nino' ? '장난기' : '차분함')), action: String(parsed.action || '')};
+    }
+
+    async function generateAITurn() {
+      if (!aiMode || aiBusy) return;
+      aiBusy = true;
+      aiStatus(`${aiNextSpeaker === 'nino' ? '니노' : '로보'}가 생각하는 중…`);
+      try {
+        let node = null;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          node = await requestAIDialogue(aiNextSpeaker, attempt ? '직전 생성 문장이 기존 문장과 중복됐다. 완전히 다른 소재와 문장 구조로 다시 작성해라.' : '');
+          const sentences = splitDialogueSentences(node.text);
+          const keys = sentences.map(normalizeSentence);
+          if (new Set(keys).size === keys.length && keys.every(k => k && !aiSeenSentences.has(k))) {
+            keys.forEach(k => aiSeenSentences.add(k));
+            break;
+          }
+          node = null;
+        }
+        if (!node) throw new Error('중복되지 않는 대사를 만들지 못했어. 다음에 다시 시도해 줘.');
+        aiTurnHistory.push({speaker: node.speaker, text: node.text});
+        aiNextSpeaker = aiNextSpeaker === 'nino' ? 'robo' : 'nino';
+        aiStatus(`${aiCategory} · AI 연결됨`, 'ok');
+        renderAIBubble(node);
+      } catch (err) {
+        aiStatus(`${err.message} API 키·모델·주소를 확인해 줘.`, 'error');
+        const bubble = document.getElementById('speechBubble');
+        bubble.dataset.speaker = 'robo';
+        document.getElementById('speechBubbleName').textContent = '시스템';
+        document.getElementById('speechBubbleText').textContent = 'AI 연결에 실패했어. 아래 설정을 확인해 줘.';
+        bubble.style.display = 'block';
+        if (autoPlay) { autoPlay = false; updateAutoPlayButton(); }
+      } finally {
+        aiBusy = false;
+      }
+    }
+
+    window.startAIConversation = function() {
+      aiCategory = document.getElementById('aiSituation').value;
+      aiMode = true;
+      aiBusy = false;
+      aiTurnHistory = [];
+      aiSeenSentences = new Set();
+      aiNextSpeaker = Math.random() < .5 ? 'nino' : 'robo';
+      currentScript = [];
+      scriptIndex = 0;
+      if (aiAutoTimer) clearTimeout(aiAutoTimer);
+      if (typingTimer) clearInterval(typingTimer);
+      if (aiTypeTimer) clearInterval(aiTypeTimer);
+      autoPlay = true;
+      updateAutoPlayButton();
+      document.getElementById('vnChapterTag').textContent = `AI 시츄에이션 · ${aiCategory}`;
+      document.getElementById('vnLocationTag').textContent = '📍 AI 자유 대화';
+      generateAITurn();
+    };
+
+    window.stopAIConversation = function() {
+      aiMode = false;
+      autoPlay = false;
+      aiBusy = false;
+      if (aiAutoTimer) { clearTimeout(aiAutoTimer); aiAutoTimer = null; }
+      if (aiTypeTimer) { clearInterval(aiTypeTimer); aiTypeTimer = null; }
+      if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+      isTyping = false;
+      updateAutoPlayButton();
+      aiStatus('AI 대화를 정지했어. 다시 시작하면 새 에피소드로 시작해.', '');
+    };
+
+    window.advanceDialogue = function() {
+      if (aiMode) {
+        if (aiBusy) return;
+        if (isTyping) {
+          const node = aiTurnHistory[aiTurnHistory.length - 1];
+          if (aiTypeTimer) { clearInterval(aiTypeTimer); aiTypeTimer = null; }
+          isTyping = false;
+          document.getElementById('vnText').textContent = document.getElementById('speechBubbleText').textContent;
+          document.getElementById('vnText').classList.remove('typing-cursor');
+          if (node) finishAITyping(node);
+        } else {
+          if (aiAutoTimer) { clearTimeout(aiAutoTimer); aiAutoTimer = null; }
+          generateAITurn();
+        }
+        return;
+      }
+      if (autoPlay) return;
+      if (!currentScript.length) return;
+      if (isTyping) { finishTyping(currentScript[scriptIndex], document.getElementById('speakerTag').textContent); return; }
+      scriptIndex++;
+      if (scriptIndex < currentScript.length) renderDialogueNode();
+      else {
+        document.getElementById('speechBubble').style.display = 'none';
+        document.getElementById('vnText').textContent = '(다른 장면을 선택하거나 AI 자유 대화를 시작해 줘.)';
+        document.getElementById('choiceContainer').innerHTML = '';
+      }
+    };
+
+    window.toggleAutoPlay = function(e) {
+      if (e) e.stopPropagation();
+      if (aiMode) {
+        autoPlay = !autoPlay;
+        updateAutoPlayButton();
+        if (autoPlay && !isTyping && !aiBusy) generateAITurn();
+        if (!autoPlay && aiAutoTimer) { clearTimeout(aiAutoTimer); aiAutoTimer = null; }
+        return;
+      }
+      autoPlay = !autoPlay;
+      updateAutoPlayButton();
+      if (autoPlay && !isTyping && currentScript.length) advanceDialogue();
+      else if (!autoPlay && autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+    };
+
+    /* ===================================================================
+       8. INITIALIZATION
+       =================================================================== */
+    window.onload = () => {
+      renderMapElements();
+      triggerScenario('chat_living');
+      setInterval(autonomousSimulationStep, 2600);
+    };
+  </script>
+</body>
+</html>
